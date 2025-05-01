@@ -1,0 +1,10 @@
+B1. Chạy Carla 0.9.8:
+CarlaUE4.exe -world-port=2000 -RenderOffScreen -benchmark -fps=20 -quality-level=Low -carla-server
+B2. Thu thập dữ liệu (không cần nếu đã có thư mục output)
+python collect_data.py --output-dir ./data --duration 60 --fps 10
+B3. Train model
+python run_control.py --mode train --data-dir ./output --epochs 10 --batch-size 8 --lr 1e-4 --output-model ./models/mobilevit_depth.pth
+B4. Test thử model
+python run_control.py --mode simulate --model-path ./models/mobilevit_depth.pth --town Town01
+tensorboard --logdir ./runs
+
