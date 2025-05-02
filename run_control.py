@@ -7,35 +7,54 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from mobilevit import MobileViT
 from carla_dataset import CarlaDataset  # Assume we've created this
+import time
 
 def train_model(data_dir, epochs, batch_size, lr, output_dir):
-    # Initialize
+    print(f"Training with data_dir={data_dir}, batch_size={batch_size}, epochs={epochs}")
+    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
     model = MobileViT().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
-    
-    # Data loading
+
+    # Load dataset
+    print("Loading dataset...")
     train_dataset = CarlaDataset(data_dir)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    
-    # Training loop
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    print(f"Dataset loaded with {len(train_dataset)} samples.")
+
     for epoch in range(epochs):
+        print(f"\n--- Epoch {epoch+1}/{epochs} ---")
+        epoch_loss = 0.0
+        batch_count = 0
+        start_time = time.time()
+
         model.train()
-        for rgb, depth, _, _ in train_loader:
+
+        for step, (rgb, depth, _, _) in enumerate(train_loader):
             rgb, depth = rgb.to(device), depth.to(device)
-            
-            # Forward pass
             pred = model(rgb)
             loss = criterion(pred, depth)
-            
-            # Backward pass
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        
-        # Save checkpoint
-        torch.save(model.state_dict(), os.path.join(output_dir, f"model_epoch{epoch}.pth"))
+
+            epoch_loss += loss.item()
+            batch_count += 1
+
+            if step % 10 == 0:
+                print(f"Step {step:03d}: batch_loss = {loss.item():.6f}")
+
+        avg_loss = epoch_loss / batch_count if batch_count > 0 else 0.0
+        print(f"Epoch {epoch+1} completed in {time.time() - start_time:.1f} sec | Avg Loss = {avg_loss:.6f}")
+
+        # Save model
+        model_path = os.path.join(output_dir, f"model_epoch{epoch+1}.pth")
+        torch.save(model.state_dict(), model_path)
+        print(f"Saved model to {model_path}")
 
 def run_simulation(model_path):
     # Load trained model

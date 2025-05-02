@@ -7,4 +7,3 @@ python run_control.py --mode train --data-dir ./output --epochs 10 --batch-size 
 B4. Test thử model
 python run_control.py --mode simulate --model-path ./models/mobilevit_depth.pth --town Town01
 tensorboard --logdir ./runs
-
